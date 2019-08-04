@@ -315,21 +315,26 @@ class SimulateScooters:
         for i in range(SimulateScooters.IN_RATE):
             self.que.append(turn + SimulateScooters.WAITING_TIME)
 
-        # log
-        print(self.total_waiting_time / self.customers_served)
-        print(self.customers_dropped)
+        # add underutilization to scooters that are not moving
         for ride in self.scooters_ride:
             if not ride:
                 self.under_utilization += 1
-        if not turn:
-            print(self.customers_served, self.total_waiting_time, self.customers_dropped, 0, sep="\n")
+
+        # log
+        if not self.customers_served:
+            print(0)
         else:
-            print(self.customers_served, self.total_waiting_time, self.customers_dropped,
-                  self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn), sep="\n")
+            print(self.total_waiting_time / self.customers_served)
+        print(self.customers_dropped)
+        if not turn:
+            print(0)
+        else:
+            print(self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn))
 
 
 class BounceSimulation:
     UNIT = 40
+    FRAMES = 150
 
     def __init__(self, with_trucks=True, score_func="aging"):
         self.node_values = []
@@ -388,7 +393,7 @@ class BounceSimulation:
         # create the figure and axis
         self.fig, self.ax = plt.subplots(figsize=(fig_width, fig_height), facecolor='w')
 
-        self.ani = animation.FuncAnimation(self.fig, self.update_plot, frames=200,
+        self.ani = animation.FuncAnimation(self.fig, self.update_plot, frames=BounceSimulation.FRAMES,
                                            init_func=self.setup_plot, blit=False)
 
     def setup_plot(self):
@@ -453,6 +458,9 @@ class BounceSimulation:
         self.fig.canvas.draw()
 
     def update_plot(self, i):
+        # stop simulation to prevent negative overflow
+        if i == BounceSimulation.FRAMES - 1:
+            quit()
         self.ax.set_title("Turn {}".format(i))
         self.scooters.turn(i)
         node_size = np.array(self.scooters.node_size())
