@@ -8,13 +8,20 @@ import sys
 
 if __name__ == '__main__':
     DATA_POINTS = 4
+    with_truck = sys.argv[2]
     with open(sys.argv[1]) as data_file:
         lines = data_file.readlines()
         lines = [float(data) for data in lines]
-        avg_waiting_time = lines[0::DATA_POINTS]
-        customers_dropped = lines[1::DATA_POINTS]
-        under_utilization = lines[2::DATA_POINTS]
-        truck_utilization = lines[3::DATA_POINTS]
+        if with_truck == "True":
+            avg_waiting_time = lines[0::DATA_POINTS]
+            customers_dropped = lines[1::DATA_POINTS]
+            under_utilization = lines[2::DATA_POINTS]
+            truck_utilization = lines[3::DATA_POINTS]
+        else:
+            avg_waiting_time = lines[0::DATA_POINTS - 1]
+            customers_dropped = lines[1::DATA_POINTS - 1]
+            under_utilization = lines[2::DATA_POINTS - 1]
+            truck_utilization = [0]*len(avg_waiting_time)
 
     def animate(frame):
         xs = range(frame + 1)

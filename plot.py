@@ -50,7 +50,7 @@ class SimulateTrucks:
     def take_office_scooters(self, office_scooters, node, take):
         office_scooters[self.office_mapping[node['osmid']]] -= take
 
-    def simplex_path_truck(self, truck_id, office_scooters):
+    def brute_path_truck(self, truck_id, office_scooters):
         cur_cap = self.truck_cap[truck_id]
         cur_pos = self.truck_pos[truck_id]
 
@@ -77,7 +77,7 @@ class SimulateTrucks:
         self.take_office_scooters(office_scooters, steps[-1], take)
         return steps, office_scooters, best_score
 
-    def simplex_algo(self, scooter_qty):
+    def brute_algo(self, scooter_qty):
         office_scooters = list(scooter_qty)
         for truck_id in range(SimulateTrucks.NUMBER):
             if not self.next_steps[truck_id]:
@@ -86,7 +86,7 @@ class SimulateTrucks:
                     steps = [self.map.node.get(i) for i in steps[1:]]
                     self.next_steps[truck_id] = deque(steps)
                 else:
-                    steps, office_scooters, _ = self.simplex_path_truck(truck_id, office_scooters)
+                    steps, office_scooters, _ = self.brute_path_truck(truck_id, office_scooters)
                     self.next_steps[truck_id] = deque(steps)
 
     def aging_score(self, scooter_qty):
@@ -244,7 +244,7 @@ class SimulateScooters:
         self.fixed_point = 40
         self.under_utilization = 0
         if not with_trucks:
-            SimulateScooters.REPLENISH = 0.01
+            SimulateScooters.REPLENISH = 0.005
 
     def node_positions(self):
         x = [self.metro['x']] + [office['x'] for office in self.offices] + [scooter['x'] for scooter in self.scooters]
@@ -341,14 +341,6 @@ class BounceSimulation:
         self.node_values = []
         self.frame = 0
         self.plot_nodes = None
-        # self.G = ox.graph_from_point((37.79, -122.41), distance=750, network_type='drive')
-        # metro = self.G.node.get(65362171)
-        # offices = [
-        #     self.G.node.get(552853360),
-        #     self.G.node.get(1580501206),
-        #     self.G.node.get(65334128),
-        #     self.G.node.get(65307363),
-        # ]
         self.G = ox.graph_from_point((12.985660, 77.645015), distance=2000, network_type='drive')
         metro = self.G.node.get(1563273556)
         offices = [
@@ -366,7 +358,7 @@ class BounceSimulation:
         self.fixed_points = list(offices)
         self.fixed_points.append(metro)
         self.plot_lines = None
-        self.with_trucks = True
+        self.with_trucks = with_trucks
         self.plot_trucks = None
 
         # get north, south, east, west values either from bbox parameter or from the
@@ -484,6 +476,6 @@ class BounceSimulation:
 
 
 if __name__ == "__main__":
-    simulation = BounceSimulation(with_trucks=True, score_func=sys.argv[1])
+    simulation = BounceSimulation(with_trucks=False, score_func=sys.argv[1])
     random.seed(25)
-    plt.show()
+    simulation.ani.save('simple_15fps.gif', writer='imagemagick', fps=15)
