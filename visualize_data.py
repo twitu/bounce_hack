@@ -4,24 +4,15 @@ import matplotlib.gridspec as gridspec
 from matplotlib import animation
 from matplotlib import style
 
-
-DATA_POINTS = 5
 if __name__ == '__main__':
-    with open("data_15fps.txt") as data_file:
+    DATA_POINTS = 4
+    with open("data_combined.txt") as data_file:
         lines = data_file.readlines()
         lines = [float(data) for data in lines]
-        customers_served = lines[::DATA_POINTS]
-        waiting_time = lines[1::DATA_POINTS]
-        customers_dropped = lines[2::DATA_POINTS]
-        under_utilization = lines[3::DATA_POINTS]
-        truck_utilization = lines[4::DATA_POINTS]
-
-    avg_waiting_time = []
-    for (customers, time) in zip(customers_dropped, waiting_time):
-        if not customers:
-            avg_waiting_time.append(0)
-        else:
-            avg_waiting_time.append(time/customers)
+        avg_waiting_time = lines[0::DATA_POINTS]
+        customers_dropped = lines[1::DATA_POINTS]
+        under_utilization = lines[2::DATA_POINTS]
+        truck_utilization = lines[3::DATA_POINTS]
 
     def animate(frame):
         xs = range(frame + 1)
@@ -52,14 +43,5 @@ if __name__ == '__main__':
     manager.resize(*manager.window.maxsize())
     fig.set_size_inches((13, 7), forward=False)
 
-
-    # fig, (ax1, ax2, ax3, ax4) = plt.subplots(2, 2)
-    # ax1.set_title("Customers dropped with time")
-    # ax2.set_title("Average customer waiting time")
-    # ax3.set_title("Average idle state per scooter per turn")
-    # ax4.set_title("Average truck utilzation")
-    # fig.tight_layout()
-
     ani = animation.FuncAnimation(fig, animate, frames=len(customers_dropped))
-    # ani.save('aging_15fps_stats.gif', writer='imagemagick', fps=15, dpi=100)
     plt.show()
