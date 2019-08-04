@@ -1,6 +1,7 @@
 import itertools as itr
 import random
 from collections import deque
+from functools import lru_cache
 
 import math
 import matplotlib.pyplot as plt
@@ -10,24 +11,8 @@ import osmnx as ox
 from matplotlib import animation
 from matplotlib.collections import LineCollection
 
-
-class CostFunctions:
-
-    @staticmethod
-    def exponential_scooter_points_decay(scooters):
-        h = 10
-        l = 8
-        limit = 10
-
-        if scooters > limit:
-            return 0
-        else:
-            return math.e ** h - math.e ** (h - 10) + 10 * l
-
-    @staticmethod
-    def fuel_cost(dist):
-        return 0.87 * dist
-
+def get_shortest_path(map, src, dst):
+    return nx.shortest_path(map, src['osmid'], dst['osmid'])
 
 class SimulateTrucks:
     NUMBER = 8
@@ -55,8 +40,8 @@ class SimulateTrucks:
     def get_size(self):
         return [(self.scooters_sim.scooter_unit + cap*cap) for cap in self.truck_cap]
 
-    def score(self, scooters, dist):
-        return CostFunctions.exponential_scooter_points_decay(scooters) + CostFunctions.fuel_cost(dist)
+    def score_function(self, scooters, dist):
+        return 10*scooters - 0.87*dist - 175
 
     def get_office_scooters(self, office_scooters, node):
         return office_scooters[self.office_mapping[node['osmid']]]
@@ -64,7 +49,7 @@ class SimulateTrucks:
     def take_office_scooters(self, office_scooters, node, take):
         office_scooters[self.office_mapping[node['osmid']]] -= take
 
-    def greedy_path_truck(self, truck_id, office_scooters):
+    def simplex_path_truck(self, truck_id, office_scooters):
         cur_cap = self.truck_cap[truck_id]
         cur_pos = self.truck_pos[truck_id]
 
@@ -73,7 +58,7 @@ class SimulateTrucks:
                 return self.score(cap_gained, dist)
             else:
                 dest = order[0]
-                path_len = len(nx.shortest_path(self.map, cur_pos['osmid'], dest['osmid']))
+                path_len = len(get_shortest_path(self.map, cur_pos, dest))
                 cap_gained += min(SimulateTrucks.CAPACITY - cur_cap, self.get_office_scooters(office_scooters, dest))
                 self.take_office_scooters(office_scooters, dest, cap_gained)
                 score1 = score_order_path(dist + path_len, cap_gained, dest, order[1:])
@@ -86,38 +71,95 @@ class SimulateTrucks:
         paths.sort(key=lambda x: x[0], reverse=True)
         best_order = paths[0][1]
         best_score = paths[0][0]
-        steps = nx.shortest_path(self.map, cur_pos['osmid'], best_order[0]['osmid'])
+        steps = get_shortest_path(self.map, cur_pos, best_score[0])
         steps = [self.map.node.get(i) for i in steps[1:]]
         take = min(SimulateTrucks.CAPACITY - cur_cap, self.get_office_scooters(office_scooters, steps[-1]))
         self.take_office_scooters(office_scooters, steps[-1], take)
         return steps, office_scooters, best_score
+
+    def simplex_algo(self, scooter_qty):
+        office_scooters = list(scooter_qty)
+        for truck_id in range(SimulateTrucks.NUMBER):
+            if not self.next_steps[truck_id]:
+                if self.truck_cap[truck_id] == SimulateTrucks.CAPACITY:
+                    steps = get_shortest_path(self.map, self.truck_pos[truck_id], self.metro)
+                    steps = [self.map.node.get(i) for i in steps[1:]]
+                    self.next_steps[truck_id] = deque(steps)
+                else:
+                    steps, office_scooters, _ = self.simplex_path_truck(truck_id, office_scooters)
+                    self.next_steps[truck_id] = deque(steps)
+
+    def aging_score(self, scooter_qty):
+        return [(a * b * c, i) for i, (a, b, c) in enumerate(zip(scooter_qty, self.turns_without_visit, self.idle_prob))]
+
+    def best_aging_score(self, cur_pos, scooter_qty):
+        scores = self.aging_score(scooter_qty)
+        scores.sort(reverse=True, key=lambda x: x[0])
+        return scores[0]
+
+    def greedy_score(self, cur_pos, scooter_qty):
+        dist = [len(get_shortest_path(self.map, cur_pos, office)) for office in self.offices]
+        scooters = [min(SimulateTrucks.CAPACITY - self.truck_cap[i], scooter_qty[i]) for i in range(SimulateTrucks.NUMBER)]
+        return [(self.score_function(a, b), i) for i, (a, b) in enumerate(zip(scooters, dist))]
+
+    def best_greedy_score(self, cur_pos, scooter_qty):
+        score = self.greedy_score(cur_pos, scooter_qty)
+        score.sort(reverse=True, key=lambda x: x[0])
+        return score[0]
+
+    def combined_score(self, cur_pos, scooter_qty, a=0.5):
+        aging = self.aging_score(scooter_qty)
+        greedy = self.greedy_score(cur_pos, scooter_qty)
+        combined = [(age_score*a + greedy_score*(1 - a), i) for i, (age_score, _), (greedy_score, _) in enumerate(zip(aging, greedy))]
+        return combined
+
+    def best_combined_score(self, cur_pos, scooter_qty):
+        combined = self.combined_score(cur_pos, scooter_qty)
+        combined.sort(reverse=True, key=lambda x: x[0])
+        return combined[0]
+
+    def calculate_path(self, scooter_qty, score_func):
+        office_scooters = list(scooter_qty)
+        for truck_id in range(SimulateTrucks.NUMBER):
+            if not self.next_steps[truck_id]:
+                if self.truck_cap[truck_id] == SimulateTrucks.CAPACITY:
+                    steps = get_shortest_path(self.map, self.truck_pos[truck_id], self.metro)
+                    steps = [self.map.node.get(i) for i in steps[1:]]
+                    self.next_steps[truck_id] = deque(steps)
+                else:
+                    score, office_id = score_func(self.truck_pos[truck_id], office_scooters)
+                    take = min(SimulateTrucks.CAPACITY - self.truck_cap[truck_id], office_scooters[office_id])
+                    if not take:
+                        self.next_steps[truck_id] = None
+                    else:
+                        office_scooters[office_id] -= take
+                        path = get_shortest_path(self.map, self.truck_pos[truck_id], self.offices[office_id])
+                        self.next_steps[truck_id] = deque([self.map.node.get(i) for i in path[1:]])
 
     def greedy_algo(self, scooter_qty):
         office_scooters = list(scooter_qty)
         for truck_id in range(SimulateTrucks.NUMBER):
             if not self.next_steps[truck_id]:
                 if self.truck_cap[truck_id] == SimulateTrucks.CAPACITY:
-                    steps = nx.shortest_path(self.map, self.truck_pos[truck_id]['osmid'], self.metro['osmid'])
+                    steps = get_shortest_path(self.map, self.truck_pos[truck_id], self.metro)
                     steps = [self.map.node.get(i) for i in steps[1:]]
                     self.next_steps[truck_id] = deque(steps)
                 else:
-                    steps, office_scooters, _ = self.greedy_path_truck(truck_id, office_scooters)
-                    self.next_steps[truck_id] = deque(steps)
-
-    def aging_score(self, scooter_qty):
-        return [(a * b * c, i) for i, (a, b, c) in enumerate(zip(scooter_qty, self.turns_without_visit, self.idle_prob))]
-
-    def best_aging_score(self, scooter_qty):
-        scores = self.aging_score(scooter_qty)
-        scores.sort(reverse=True, key=lambda x: x[0])
-        return scores[0]
+                    score, office_id = self.best_greedy_score(self.truck_pos[truck_id], office_scooters)
+                    take = min(SimulateTrucks.CAPACITY - self.truck_cap[truck_id], office_scooters[office_id])
+                    if not take:
+                        self.next_steps[truck_id] = None
+                    else:
+                        office_scooters[office_id] -= take
+                        path = get_shortest_path(self.map, self.truck_pos[truck_id], self.offices[office_id])
+                        self.next_steps[truck_id] = deque([self.map.node.get(i) for i in path[1:]])
 
     def aging_algo(self, scooter_qty):
         office_scooters = list(scooter_qty)
         for truck_id in range(SimulateTrucks.NUMBER):
             if not self.next_steps[truck_id]:
                 if self.truck_cap[truck_id] == SimulateTrucks.CAPACITY:
-                    steps = nx.shortest_path(self.map, self.truck_pos[truck_id]['osmid'], self.metro['osmid'])
+                    steps = get_shortest_path(self.map, self.truck_pos[truck_id], self.metro)
                     steps = [self.map.node.get(i) for i in steps[1:]]
                     self.next_steps[truck_id] = deque(steps)
                 else:
@@ -127,7 +169,7 @@ class SimulateTrucks:
                         self.next_steps[truck_id] = None
                     else:
                         office_scooters[office_id] -= take
-                        path = nx.shortest_path(self.map, self.truck_pos[truck_id]['osmid'], self.offices[office_id]['osmid'])
+                        path = get_shortest_path(self.map, self.truck_pos[truck_id], self.offices[office_id])
                         self.next_steps[truck_id] = deque([self.map.node.get(i) for i in path[1:]])
 
     def update_truck_pos(self, metro_scooters, office_scooters):
@@ -173,7 +215,7 @@ class SimulateScooters:
     SCOOTERS_TOTAL = 200  # scooters in simulation
     REPLENISH = 0  # scooters come back to metro
 
-    def __init__(self, G, office_nodes, metro_node):
+    def __init__(self, G, office_nodes, metro_node, with_trucks):
         """
         Initialize scooters, offices and metro positions for simulation
 
@@ -198,6 +240,8 @@ class SimulateScooters:
         self.scooter_unit = 15
         self.fixed_point = 40
         self.under_utilization = 0
+        if not with_trucks:
+            SimulateScooters.REPLENISH = 0.01
 
     def node_positions(self):
         x = [self.metro['x']] + [office['x'] for office in self.offices] + [scooter['x'] for scooter in self.scooters]
@@ -329,7 +373,7 @@ class BounceSimulation:
         fig_width = fig_height / bbox_aspect_ratio
 
         # create simulation object
-        self.scooters = SimulateScooters(self.G, offices, metro)
+        self.scooters = SimulateScooters(self.G, offices, metro, with_trucks)
         if with_trucks:
             self.trucks = SimulateTrucks(self.G, offices, metro, self.scooters)
 
@@ -409,7 +453,7 @@ class BounceSimulation:
         node_pos = np.c_[x, y]
         self.plot_nodes.set_offsets(node_pos)
         if self.with_trucks:
-            self.trucks.aging_algo(self.scooters.scooters_office)
+            self.trucks.greedy_algo(self.scooters.scooters_office)
             metro, office = self.trucks.update_truck_pos(self.scooters.scooters_metro, self.scooters.scooters_office)
             self.scooters.scooters_metro = metro
             self.scooters.scooters_office = office
@@ -424,22 +468,29 @@ class BounceSimulation:
 random.seed(25)
 if __name__ == "__main__":
     random.seed(25)
-    # G = ox.graph_from_point((37.79, -122.41), distance=750, network_type='drive')
-    # metro = G.node.get(65362171)
+    # G = ox.graph_from_point((12.985660, 77.645015), distance=2000, network_type='drive')
+    # metro = G.node.get(1563273556)
     # offices = [
-    #     G.node.get(552853360),
-    #     G.node.get(1580501206),
-    #     G.node.get(65334128),
-    #     G.node.get(65307363),
+    #     G.node.get(6536735148),
+    #     G.node.get(6536735146),
+    #     G.node.get(1132680459),
+    #     G.node.get(1132675346),
+    #     G.node.get(1339408165),
+    #     G.node.get(1328155440),
+    #     G.node.get(1500759513),
+    #     G.node.get(1485686869),
+    #     G.node.get(3885545484),
+    #     G.node.get(1808901710),
     # ]
     # scooters = SimulateScooters(G, offices, metro)
     # trucks = SimulateTrucks(G, offices, metro, scooters)
     #
-    # for i in range(150):
+    # for i in range(200):
     #     scooters.turn(i)
-    #     trucks.aging_algo(scooters.scooters_office)
+    #     trucks.greedy_algo(scooters.scooters_office)
     #     sc_metro, sc_offices = trucks.update_truck_pos(scooters.scooters_metro, scooters.scooters_office)
     #     scooters.scooters_metro = sc_metro
     #     scooters.scooters_office = sc_offices
     simulation = BounceSimulation(with_trucks=True)
-    simulation.ani.save('aging.gif', writer='imagemagick', fps=15, dpi=100)
+    plt.show()
+    # simulation.ani.save('greedy_15fps.gif', writer='imagemagick', fps=15, dpi=100)
