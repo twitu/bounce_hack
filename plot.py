@@ -1,9 +1,7 @@
 import itertools as itr
 import random
 from collections import deque
-from functools import lru_cache
 
-import math
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -11,8 +9,10 @@ import osmnx as ox
 from matplotlib import animation
 from matplotlib.collections import LineCollection
 
+
 def get_shortest_path(map, src, dst):
     return nx.shortest_path(map, src['osmid'], dst['osmid'])
+
 
 class SimulateTrucks:
     NUMBER = 8
@@ -22,7 +22,7 @@ class SimulateTrucks:
         self.map = G
         self.offices = office_nodes
         self.turns_without_visit = [1] * SimulateScooters.OFFICE_NUM
-        self.idle_prob = [random.randint(1, 30)/100 for _ in range(SimulateScooters.OFFICE_NUM)]
+        self.idle_prob = [random.randint(1, 30) / 100 for _ in range(SimulateScooters.OFFICE_NUM)]
         self.office_mapping = {office['osmid']: i for i, office in enumerate(self.offices)}
         self.metro = metro_node
         self.truck_pos = [self.map.node.get(i) for i in random.sample(self.map.nodes, SimulateTrucks.NUMBER)]
@@ -38,10 +38,10 @@ class SimulateTrucks:
         return x, y
 
     def get_size(self):
-        return [(self.scooters_sim.scooter_unit + cap*cap) for cap in self.truck_cap]
+        return [(self.scooters_sim.scooter_unit + cap * cap) for cap in self.truck_cap]
 
     def score_function(self, scooters, dist):
-        return 10*scooters - 0.87*dist - 175
+        return 10 * scooters - 0.87 * dist - 175
 
     def get_office_scooters(self, office_scooters, node):
         return office_scooters[self.office_mapping[node['osmid']]]
@@ -69,7 +69,6 @@ class SimulateTrucks:
         paths = [(score_order_path(0, 0, cur_pos, order), order) for order in
                  itr.permutations(self.offices, len(self.offices)) if order[0] is not cur_pos]
         paths.sort(key=lambda x: x[0], reverse=True)
-        best_order = paths[0][1]
         best_score = paths[0][0]
         steps = get_shortest_path(self.map, cur_pos, best_score[0])
         steps = [self.map.node.get(i) for i in steps[1:]]
@@ -90,7 +89,8 @@ class SimulateTrucks:
                     self.next_steps[truck_id] = deque(steps)
 
     def aging_score(self, scooter_qty):
-        return [(a * b * c, i) for i, (a, b, c) in enumerate(zip(scooter_qty, self.turns_without_visit, self.idle_prob))]
+        return [(a * b * c, i) for i, (a, b, c) in
+                enumerate(zip(scooter_qty, self.turns_without_visit, self.idle_prob))]
 
     def best_aging_score(self, cur_pos, scooter_qty):
         scores = self.aging_score(scooter_qty)
@@ -99,7 +99,8 @@ class SimulateTrucks:
 
     def greedy_score(self, cur_pos, scooter_qty):
         dist = [len(get_shortest_path(self.map, cur_pos, office)) for office in self.offices]
-        scooters = [min(SimulateTrucks.CAPACITY - self.truck_cap[i], scooter_qty[i]) for i in range(SimulateTrucks.NUMBER)]
+        scooters = [min(SimulateTrucks.CAPACITY - self.truck_cap[i], scooter_qty[i]) for i in
+                    range(SimulateTrucks.NUMBER)]
         return [(self.score_function(a, b), i) for i, (a, b) in enumerate(zip(scooters, dist))]
 
     def best_greedy_score(self, cur_pos, scooter_qty):
@@ -107,10 +108,11 @@ class SimulateTrucks:
         score.sort(reverse=True, key=lambda x: x[0])
         return score[0]
 
-    def combined_score(self, cur_pos, scooter_qty, a=0.5):
+    def combined_score(self, cur_pos, scooter_qty, a=0.7):
         aging = self.aging_score(scooter_qty)
         greedy = self.greedy_score(cur_pos, scooter_qty)
-        combined = [(age_score*a + greedy_score*(1 - a), i) for i, (age_score, _), (greedy_score, _) in enumerate(zip(aging, greedy))]
+        combined = [(age_score * a + greedy_score * (1 - a), i) for i, ((age_score, _), (greedy_score, _)) in
+                    enumerate(zip(aging, greedy))]
         return combined
 
     def best_combined_score(self, cur_pos, scooter_qty):
@@ -255,8 +257,8 @@ class SimulateScooters:
                 scooters.append(self.scooter_unit)
             else:
                 scooters.append(0)
-        mapped_scooters_office = [n*n + self.fixed_point for n in self.scooters_office]
-        return [self.scooters_metro*self.scooters_metro + self.fixed_point] + mapped_scooters_office + scooters
+        mapped_scooters_office = [n * n + self.fixed_point for n in self.scooters_office]
+        return [self.scooters_metro * self.scooters_metro + self.fixed_point] + mapped_scooters_office + scooters
 
     def turn(self, turn):
         """
@@ -314,8 +316,7 @@ class SimulateScooters:
             self.que.append(turn + SimulateScooters.WAITING_TIME)
 
         # log
-        print(self.customers_served)
-        print(self.total_waiting_time)
+        print(self.total_waiting_time / self.customers_served)
         print(self.customers_dropped)
         for ride in self.scooters_ride:
             if not ride:
@@ -323,13 +324,14 @@ class SimulateScooters:
         if not turn:
             print(self.customers_served, self.total_waiting_time, self.customers_dropped, 0, sep="\n")
         else:
-            print(self.customers_served, self.total_waiting_time, self.customers_dropped, self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn), sep="\n")
+            print(self.customers_served, self.total_waiting_time, self.customers_dropped,
+                  self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn), sep="\n")
 
 
 class BounceSimulation:
     UNIT = 40
 
-    def __init__(self, with_trucks=True):
+    def __init__(self, with_trucks=True, score_func="aging"):
         self.node_values = []
         self.frame = 0
         self.plot_nodes = None
@@ -376,6 +378,12 @@ class BounceSimulation:
         self.scooters = SimulateScooters(self.G, offices, metro, with_trucks)
         if with_trucks:
             self.trucks = SimulateTrucks(self.G, offices, metro, self.scooters)
+            if score_func == "aging":
+                self.score_func = self.trucks.best_aging_score
+            elif score_func == "greedy":
+                self.score_func = self.trucks.best_greedy_score
+            else:
+                self.score_func = self.trucks.best_combined_score
 
         # create the figure and axis
         self.fig, self.ax = plt.subplots(figsize=(fig_width, fig_height), facecolor='w')
@@ -436,7 +444,8 @@ class BounceSimulation:
             truckx, trucky = self.trucks.get_pos()
             truckx, trucky = np.array(truckx), np.array(trucky)
             truck_size = self.trucks.get_size()
-            self.plot_trucks = self.ax.scatter(truckx, trucky, s=truck_size, c=truck_size, alpha=0.6, edgecolor=None, zorder=15, cmap='plasma')
+            self.plot_trucks = self.ax.scatter(truckx, trucky, s=truck_size, c=truck_size, alpha=0.6, edgecolor=None,
+                                               zorder=15, cmap='plasma')
 
         # if the graph is not projected, conform the aspect ratio to not stretch the plot
         coslat = np.cos((min(nodeYs) + max(nodeYs)) / 2. / 180. * np.pi)
@@ -453,7 +462,7 @@ class BounceSimulation:
         node_pos = np.c_[x, y]
         self.plot_nodes.set_offsets(node_pos)
         if self.with_trucks:
-            self.trucks.greedy_algo(self.scooters.scooters_office)
+            self.trucks.calculate_path(self.scooters.scooters_office, self.score_func)
             metro, office = self.trucks.update_truck_pos(self.scooters.scooters_metro, self.scooters.scooters_office)
             self.scooters.scooters_metro = metro
             self.scooters.scooters_office = office
@@ -465,32 +474,7 @@ class BounceSimulation:
             self.plot_trucks.set_offsets(truck_pos)
 
 
-random.seed(25)
 if __name__ == "__main__":
+    simulation = BounceSimulation(with_trucks=True, score_func="combined")
     random.seed(25)
-    # G = ox.graph_from_point((12.985660, 77.645015), distance=2000, network_type='drive')
-    # metro = G.node.get(1563273556)
-    # offices = [
-    #     G.node.get(6536735148),
-    #     G.node.get(6536735146),
-    #     G.node.get(1132680459),
-    #     G.node.get(1132675346),
-    #     G.node.get(1339408165),
-    #     G.node.get(1328155440),
-    #     G.node.get(1500759513),
-    #     G.node.get(1485686869),
-    #     G.node.get(3885545484),
-    #     G.node.get(1808901710),
-    # ]
-    # scooters = SimulateScooters(G, offices, metro)
-    # trucks = SimulateTrucks(G, offices, metro, scooters)
-    #
-    # for i in range(200):
-    #     scooters.turn(i)
-    #     trucks.greedy_algo(scooters.scooters_office)
-    #     sc_metro, sc_offices = trucks.update_truck_pos(scooters.scooters_metro, scooters.scooters_office)
-    #     scooters.scooters_metro = sc_metro
-    #     scooters.scooters_office = sc_offices
-    simulation = BounceSimulation(with_trucks=True)
     plt.show()
-    # simulation.ani.save('greedy_15fps.gif', writer='imagemagick', fps=15, dpi=100)
