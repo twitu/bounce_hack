@@ -1,5 +1,6 @@
 import itertools as itr
 import random
+import sys
 from collections import deque
 
 import matplotlib.pyplot as plt
@@ -483,6 +484,6 @@ class BounceSimulation:
 
 
 if __name__ == "__main__":
-    simulation = BounceSimulation(with_trucks=True, score_func="combined")
+    simulation = BounceSimulation(with_trucks=True, score_func=sys.argv[1])
     random.seed(25)
     plt.show()

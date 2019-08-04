@@ -4,9 +4,11 @@ import matplotlib.gridspec as gridspec
 from matplotlib import animation
 from matplotlib import style
 
+import sys
+
 if __name__ == '__main__':
     DATA_POINTS = 4
-    with open("data_combined.txt") as data_file:
+    with open(sys.argv[1]) as data_file:
         lines = data_file.readlines()
         lines = [float(data) for data in lines]
         avg_waiting_time = lines[0::DATA_POINTS]
