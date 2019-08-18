@@ -129,12 +129,15 @@ class SimulateScooters:
                 self.under_utilization += 1
 
         # log metrics for each turn
+        metrics = []
         if not self.customers_served:
-            print(0)
+            metrics.append(0)
         else:
-            print(self.total_waiting_time / self.customers_served)
-        print(self.customers_dropped)
+            metrics.append(self.total_waiting_time / self.customers_served)
+        metrics.append(self.customers_dropped)
         if not turn:
-            print(0)
+            metrics.append(0)
         else:
-            print(self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn))
+            metrics.append(self.under_utilization / (SimulateScooters.SCOOTERS_TOTAL * turn))
+
+        return metrics

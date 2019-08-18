@@ -1,11 +1,11 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import osmnx as ox
 from matplotlib import animation
 from matplotlib.collections import LineCollection
+
 from scooter_simulation import SimulateScooters
 from truck_simulation import SimulateTrucks
-
-import osmnx as ox
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 class BounceSimulation:
@@ -15,7 +15,7 @@ class BounceSimulation:
     def __init__(self, score_func="aging"):
         self.node_values = []
         self.frame = 0
-        self.plot_nodes = None
+        self.metrics = []
         self.G = ox.graph_from_point((12.985660, 77.645015), distance=2000, network_type='drive')
         metro = self.G.node.get(1563273556)
         offices = [
@@ -32,8 +32,8 @@ class BounceSimulation:
         ]
         self.fixed_points = list(offices)
         self.fixed_points.append(metro)
-        self.plot_lines = None
         self.plot_trucks = None
+        self.plot_scooters = None
 
         # get north, south, east, west values either from bbox parameter or from the
         # spatial extent of the edges' geometries
@@ -78,7 +78,6 @@ class BounceSimulation:
 
         # add the lines to the axis as a linecollection
         lc = LineCollection(lines, colors='#999999', linewidths=1, alpha=1, zorder=2)
-        self.plot_lines = self.ax.add_collection(lc)
 
         # set the extent of the figure
         west, south, east, north = self.edges.total_bounds
@@ -109,9 +108,9 @@ class BounceSimulation:
         node_size = self.scooters.node_size()
         nodeXs = np.array(nodeXs)
         nodeYs = np.array(nodeYs)
-        self.plot_nodes = self.ax.scatter(nodeXs, nodeYs, s=node_size, c=node_size, alpha=0.6, edgecolor=None,
-                                          zorder=10,
-                                          cmap='gnuplot')
+        self.plot_scooters = self.ax.scatter(nodeXs, nodeYs, s=node_size, c=node_size, alpha=0.6, edgecolor=None,
+                                             zorder=10,
+                                             cmap='gnuplot')
 
         # setup truck scatter artist
         truckx, trucky = self.trucks.get_pos()
@@ -132,17 +131,19 @@ class BounceSimulation:
         self.ax.set_title("Turn {}".format(i))
 
         # modify scooter scatter plot artist
-        self.scooters.turn(i)
+        self.metrics.append(self.scooters.turn(i))
         node_size = np.array(self.scooters.node_size())
         x, y = self.scooters.node_positions()
         node_pos = np.c_[x, y]
-        self.plot_nodes.set_sizes(node_size)  # changes size of points
-        self.plot_nodes.set_array(node_size)  # changes color of points
-        self.plot_nodes.set_offsets(node_pos)  # changes position of points
+        self.plot_scooters.set_sizes(node_size)  # changes size of points
+        self.plot_scooters.set_array(node_size)  # changes color of points
+        self.plot_scooters.set_offsets(node_pos)  # changes position of points
 
         # modify truck scatter plot artist
         self.trucks.calculate_path(self.scooters.scooters_office, self.score_func)
-        metro, office = self.trucks.update_truck_pos(self.scooters.scooters_metro, self.scooters.scooters_office)
+        metro, office, metric = self.trucks.update_truck_pos(self.scooters.scooters_metro,
+                                                             self.scooters.scooters_office)
+        self.metrics.append(metric)
         self.scooters.scooters_metro = metro
         self.scooters.scooters_office = office
         truckx, trucky = self.trucks.get_pos()

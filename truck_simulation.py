@@ -246,11 +246,12 @@ class SimulateTrucks:
             else:
                 # take next step
                 self.truck_pos[i] = step
+        self.turns_without_visit = [i + 1 for i in self.turns_without_visit]
 
         # log metrics for each turn
-        self.turns_without_visit = [i + 1 for i in self.turns_without_visit]
+        metrics = []
         if not self.dist_travelled:
-            print(0)
+            metrics.append(0)
         else:
-            print(self.scooters_picked / (SimulateTrucks.NUMBER * self.dist_travelled))
-        return metro_scooters, office_scooters
+            metrics.append(self.scooters_picked / (SimulateTrucks.NUMBER * self.dist_travelled))
+        return metro_scooters, office_scooters, metrics
