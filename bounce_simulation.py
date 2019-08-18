@@ -1,21 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import osmnx as ox
+
 from matplotlib import animation
 from matplotlib.collections import LineCollection
-
 from scooter_simulation import SimulateScooters
 from truck_simulation import SimulateTrucks
 
 
 class BounceSimulation:
     UNIT = 40
-    FRAMES = 150
+    FRAMES = 50
 
     def __init__(self, score_func="aging"):
         self.node_values = []
         self.frame = 0
-        self.metrics = []
+        self.data = []
         self.G = ox.graph_from_point((12.985660, 77.645015), distance=2000, network_type='drive')
         metro = self.G.node.get(1563273556)
         offices = [
@@ -78,6 +78,7 @@ class BounceSimulation:
 
         # add the lines to the axis as a linecollection
         lc = LineCollection(lines, colors='#999999', linewidths=1, alpha=1, zorder=2)
+        self.ax.add_collection(lc)
 
         # set the extent of the figure
         west, south, east, north = self.edges.total_bounds
@@ -131,7 +132,7 @@ class BounceSimulation:
         self.ax.set_title("Turn {}".format(i))
 
         # modify scooter scatter plot artist
-        self.metrics.append(self.scooters.turn(i))
+        self.data.append(self.scooters.turn(i))
         node_size = np.array(self.scooters.node_size())
         x, y = self.scooters.node_positions()
         node_pos = np.c_[x, y]
@@ -143,7 +144,7 @@ class BounceSimulation:
         self.trucks.calculate_path(self.scooters.scooters_office, self.score_func)
         metro, office, metric = self.trucks.update_truck_pos(self.scooters.scooters_metro,
                                                              self.scooters.scooters_office)
-        self.metrics.append(metric)
+        self.data.append(metric)
         self.scooters.scooters_metro = metro
         self.scooters.scooters_office = office
         truckx, trucky = self.trucks.get_pos()

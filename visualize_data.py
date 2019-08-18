@@ -4,53 +4,44 @@ import matplotlib.gridspec as gridspec
 from matplotlib import animation
 from matplotlib import style
 
-import sys
 
-if __name__ == '__main__':
+class VisualizeData:
     DATA_POINTS = 4
-    with_truck = sys.argv[2]
-    with open(sys.argv[1]) as data_file:
-        lines = data_file.readlines()
-        lines = [float(data) for data in lines]
-        if with_truck == "True":
-            avg_waiting_time = lines[0::DATA_POINTS]
-            customers_dropped = lines[1::DATA_POINTS]
-            under_utilization = lines[2::DATA_POINTS]
-            truck_utilization = lines[3::DATA_POINTS]
-        else:
-            avg_waiting_time = lines[0::DATA_POINTS - 1]
-            customers_dropped = lines[1::DATA_POINTS - 1]
-            under_utilization = lines[2::DATA_POINTS - 1]
-            truck_utilization = [0]*len(avg_waiting_time)
+    
+    def __init__(self, data):
+        self.data = data
+        self.frames = len(data)/self.DATA_POINTS
+        self.avg_waiting_time = self.data[0::self.DATA_POINTS]
+        self.customers_dropped = self.data[1::self.DATA_POINTS]
+        self.under_utilization = self.data[2::self.DATA_POINTS]
+        self.truck_utilization = self.data[3::self.DATA_POINTS]
+        self.fig = plt.figure()
+        self.ani = animation.FuncAnimation(self.fig, self.animate, init_func=self.setup_plot, frames=len(self.frames))
 
-    def animate(frame):
+    def animate(self, frame):
         xs = range(frame + 1)
-        ax1.clear()
-        ax1.plot(xs, customers_dropped[:frame+1])
-        ax2.clear()
-        ax2.plot(xs, avg_waiting_time[:frame+1])
-        ax3.clear()
-        ax3.plot(xs, under_utilization[:frame+1])
-        ax4.clear()
-        ax4.plot(xs, truck_utilization[:frame+1])
-        ax1.set_title("Customers dropped with time")
-        ax2.set_title("Average customer waiting time")
-        ax3.set_title("Average idle state per scooter per turn")
-        ax4.set_title("Average truck utilzation")
-
-    style.use('bmh')
-
-    fig = plt.figure()
-    spec = gridspec.GridSpec(ncols=2, nrows=2, figure=fig)
-    ax1 = fig.add_subplot(spec[0, 0])
-    ax2 = fig.add_subplot(spec[0, 1])
-    ax3 = fig.add_subplot(spec[1, 0])
-    ax4 = fig.add_subplot(spec[1, 1])
-    plt.subplots_adjust(top=0.92, bottom=0.08, left=0.10, right=0.95, hspace=0.25,
-                        wspace=0.35)
-    manager = plt.get_current_fig_manager()
-    manager.resize(*manager.window.maxsize())
-    fig.set_size_inches((13, 7), forward=False)
-
-    ani = animation.FuncAnimation(fig, animate, frames=len(customers_dropped))
-    plt.show()
+        self.ax1.clear()
+        self.ax1.plot(xs, self.customers_dropped[:frame+1])
+        self.ax2.clear()
+        self.ax2.plot(xs, self.avg_waiting_time[:frame+1])
+        self.ax3.clear()
+        self.ax3.plot(xs, self.under_utilization[:frame+1])
+        self.ax4.clear()
+        self.ax4.plot(xs, self.truck_utilization[:frame+1])
+        self.ax1.set_title("Customers dropped with time")
+        self.ax2.set_title("Average customer waiting time")
+        self.ax3.set_title("Average idle state per scooter per turn")
+        self.ax4.set_title("Average truck utilzation")
+        
+    def setup_plot(self):
+        style.use('bmh')
+        spec = gridspec.GridSpec(ncols=2, nrows=2, figure=self.fig)
+        self.ax1 = self.fig.add_subplot(spec[0, 0])
+        self.ax2 = self.fig.add_subplot(spec[0, 1])
+        self.ax3 = self.fig.add_subplot(spec[1, 0])
+        self.ax4 = self.fig.add_subplot(spec[1, 1])
+        plt.subplots_adjust(top=0.92, bottom=0.08, left=0.10, right=0.95, hspace=0.25,
+                            wspace=0.35)
+        manager = plt.get_current_fig_manager()
+        manager.resize(*manager.window.maxsize())
+        self.fig.set_size_inches((13, 7), forward=False)

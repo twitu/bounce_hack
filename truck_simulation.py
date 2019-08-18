@@ -1,9 +1,9 @@
-from random import random
-from collections import deque
-from scooter_simulation import SimulateScooters
-
 import itertools as itr
 import networkx as nx
+
+from random import sample, randint
+from collections import deque
+from scooter_simulation import SimulateScooters
 
 
 class SimulateTrucks:
@@ -14,10 +14,10 @@ class SimulateTrucks:
         self.map = G
         self.offices = office_nodes
         self.turns_without_visit = [1] * SimulateScooters.OFFICE_NUM
-        self.idle_prob = [random.randint(1, 30) / 100 for _ in range(SimulateScooters.OFFICE_NUM)]
+        self.idle_prob = [randint(1, 30) / 100 for _ in range(SimulateScooters.OFFICE_NUM)]
         self.office_mapping = {office['osmid']: i for i, office in enumerate(self.offices)}
         self.metro = metro_node
-        self.truck_pos = [self.map.node.get(i) for i in random.sample(self.map.nodes, SimulateTrucks.NUMBER)]
+        self.truck_pos = [self.map.node.get(i) for i in sample(self.map.nodes, SimulateTrucks.NUMBER)]
         self.truck_cap = [0] * SimulateTrucks.NUMBER
         self.scooters_sim = scooters
         self.next_steps = [None] * SimulateTrucks.NUMBER
