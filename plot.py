@@ -42,6 +42,16 @@ class SimulateTrucks:
         return [(self.scooters_sim.scooter_unit + cap * cap) for cap in self.truck_cap]
 
     def score_function(self, scooters, dist):
+        """
+        Designed to recover truck cost 80% of the time
+
+        Args:
+            scooters: Number of scooters the truck can pickup
+            dist: Distance truck will travel to pick-up location
+
+        Returns:
+            score
+        """
         return 10 * scooters - 0.87 * dist - 175
 
     def get_office_scooters(self, office_scooters, node):
@@ -51,6 +61,19 @@ class SimulateTrucks:
         office_scooters[self.office_mapping[node['osmid']]] -= take
 
     def brute_path_truck(self, truck_id, office_scooters):
+        """
+        Try all orders of paths that can be taken, taking the order and the path
+        with maximum score.
+
+        Args:
+            truck_id - indicating truck concerned
+            office_scooters List(int): speculated number of scooters at office locations
+
+        Returns:
+            steps: chosen path
+            office_scooters: remaining number of scooters at office locations
+            best_score: score for the path
+        """
         cur_cap = self.truck_cap[truck_id]
         cur_pos = self.truck_pos[truck_id]
 
@@ -78,6 +101,15 @@ class SimulateTrucks:
         return steps, office_scooters, best_score
 
     def brute_algo(self, scooter_qty):
+        """
+        Try all orders of trucks for all orders of paths that can be taken,
+        taking the best order which has the best cumulative score of all paths.
+        Method is called every time a truck completes and objective, resetting objectives
+        i.e. destination for all trucks.
+
+        Args:
+            scooter_qty: number of scooters at office locations
+        """
         office_scooters = list(scooter_qty)
         for truck_id in range(SimulateTrucks.NUMBER):
             if not self.next_steps[truck_id]:
@@ -122,6 +154,16 @@ class SimulateTrucks:
         return combined[0]
 
     def calculate_path(self, scooter_qty, score_func):
+        """
+        Calculates destination and path for all trucks that have,
+        reached destination i.e. their next steps queue is None. Method
+        is called every turn.
+
+        Args:
+            scooter_qty: number of scooters at office locations
+            score_func: choosing among aging, greedy or combined score to
+                decide paths to take
+        """
         office_scooters = list(scooter_qty)
         for truck_id in range(SimulateTrucks.NUMBER):
             if not self.next_steps[truck_id]:
@@ -176,6 +218,16 @@ class SimulateTrucks:
                         self.next_steps[truck_id] = deque([self.map.node.get(i) for i in path[1:]])
 
     def update_truck_pos(self, metro_scooters, office_scooters):
+        """
+        Checks if a truck has reached its objective. If it is a metro,
+        add scooters to metro capacity. If it is a office takes scooters,
+        according to capacity. Method is called every turn to update truck
+        positions.
+
+        Args:
+            metro_scooters: number of scooters at metro
+            office_scooters: number of scooters at office locations
+        """
         for i, steps in enumerate(self.next_steps):
             if not steps:
                 continue
@@ -201,6 +253,7 @@ class SimulateTrucks:
                 # take next step
                 self.truck_pos[i] = step
 
+        # log metrics for each turn
         self.turns_without_visit = [i + 1 for i in self.turns_without_visit]
         if not self.dist_travelled:
             print(0)
@@ -224,8 +277,9 @@ class SimulateScooters:
 
         Args:
             G <graph object>: map of city
-            office_nodes List[nodes]
-            metro_node node
+            office_nodes List[nodes]: List of office node positions
+            metro_node node: metro node position
+            with_trucks: Simulate with trucks doing redistribution
         """
         self.map = G
         self.que = deque()  # que of waiting customers
@@ -247,11 +301,24 @@ class SimulateScooters:
             SimulateScooters.REPLENISH = 0.005
 
     def node_positions(self):
+        """
+        Make two separate list of positions for all points of interest
+
+        Return:
+            (List(int), List(int)) - List of x and y coordinates
+        """
         x = [self.metro['x']] + [office['x'] for office in self.offices] + [scooter['x'] for scooter in self.scooters]
         y = [self.metro['y']] + [office['y'] for office in self.offices] + [scooter['y'] for scooter in self.scooters]
         return x, y
 
     def node_size(self):
+        """
+        Make array of number of scooters parked at metro and offices. All scooters being ridden
+        have display a single fixed size point.
+
+        Return:
+            List(int): indicating size of point
+        """
         scooters = []
         for ride in self.scooters_ride:
             if ride:
@@ -291,6 +358,7 @@ class SimulateScooters:
 
             self.scooters[i] = self.map.node.get(next_pos)
 
+        # handle customers waiting at metro
         while self.que:
             if self.que[0] == turn:
                 # remove waiting customers
@@ -316,12 +384,12 @@ class SimulateScooters:
         for i in range(SimulateScooters.IN_RATE):
             self.que.append(turn + SimulateScooters.WAITING_TIME)
 
-        # add underutilization to scooters that are not moving
+        # add under utilization to scooters that are not moving
         for ride in self.scooters_ride:
             if not ride:
                 self.under_utilization += 1
 
-        # log
+        # log metrics for each turn
         if not self.customers_served:
             print(0)
         else:
