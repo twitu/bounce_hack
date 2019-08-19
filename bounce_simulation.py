@@ -125,9 +125,6 @@ class BounceSimulation:
         self.fig.canvas.draw()
 
     def update_plot(self, i):
-        # stop simulation to prevent negative overflow
-        if i == BounceSimulation.FRAMES - 1:
-            quit()
         self.ax.set_title("Turn {}".format(i))
 
         # modify scooter scatter plot artist
