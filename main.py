@@ -13,5 +13,5 @@ if __name__ == "__main__":
     random.seed(25)
     simulation = BounceSimulation(score_func=sys.argv[1])
     simulation.ani.save('bounce_simulation.gif', writer='imagemagick', fps=10)
-    visualize = VisualizeData(list(chain(simulation.data)))
+    visualize = VisualizeData(list(chain.from_iterable(simulation.data)))
     visualize.ani.save('data_simulation.gif', writer='imagmagick', fps=10)
