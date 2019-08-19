@@ -1,7 +1,7 @@
-import networkx as nx
-
-from random import randint, random
 from collections import deque
+from random import randint, random
+
+import networkx as nx
 
 
 class SimulateScooters:

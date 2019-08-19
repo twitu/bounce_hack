@@ -1,8 +1,9 @@
 import itertools as itr
+from collections import deque
+from random import sample, randint
+
 import networkx as nx
 
-from random import sample, randint
-from collections import deque
 from scooter_simulation import SimulateScooters
 
 

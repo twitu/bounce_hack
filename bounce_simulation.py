@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import osmnx as ox
-
 from matplotlib import animation
 from matplotlib.collections import LineCollection
+
 from scooter_simulation import SimulateScooters
 from truck_simulation import SimulateTrucks
 
@@ -149,4 +149,3 @@ class BounceSimulation:
         self.plot_trucks.set_sizes(truck_size)
         self.plot_trucks.set_array(truck_size)
         self.plot_trucks.set_offsets(truck_pos)
-

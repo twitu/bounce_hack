@@ -1,10 +1,9 @@
 import random
 import sys
+from itertools import chain
 
 from bounce_simulation import BounceSimulation
 from visualize_data import VisualizeData
-from itertools import chain
-
 
 if __name__ == "__main__":
     """
