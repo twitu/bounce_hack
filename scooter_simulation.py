@@ -11,6 +11,7 @@ class SimulateScooters:
     WAITING_TIME = 3  # maximum turns customer will wait for scooter
     SCOOTERS_TOTAL = 200  # scooters in simulation
     REPLENISH = 0.005  # scooters come back to metro due random commute
+    SIZE = 15  # size of scooter on graph
 
     def __init__(self, G, office_nodes, metro_node):
         """
@@ -34,7 +35,6 @@ class SimulateScooters:
         self.scooters_office = [0] * SimulateScooters.OFFICE_NUM
         self.office_paths = [deque(nx.shortest_path(self.map, self.metro['osmid'], office['osmid'])) for office in
                              self.offices]
-        self.scooter_unit = 15
         self.fixed_point = 40
         self.under_utilization = 0
 
@@ -60,7 +60,7 @@ class SimulateScooters:
         scooters = []
         for ride in self.scooters_ride:
             if ride:
-                scooters.append(self.scooter_unit)
+                scooters.append(SimulateScooters.SIZE)
             else:
                 scooters.append(0)
         mapped_scooters_office = [n * n + self.fixed_point for n in self.scooters_office]

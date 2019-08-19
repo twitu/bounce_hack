@@ -47,7 +47,7 @@ class BounceSimulation:
 
         # create simulation object
         self.scooters = SimulateScooters(self.G, offices, metro)
-        self.trucks = SimulateTrucks(self.G, offices, metro, self.scooters)
+        self.trucks = SimulateTrucks(self.G, offices, metro)
         if score_func == "aging":
             self.score_func = self.trucks.best_aging_score
         elif score_func == "greedy":

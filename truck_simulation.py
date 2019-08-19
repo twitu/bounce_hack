@@ -8,10 +8,11 @@ from scooter_simulation import SimulateScooters
 
 
 class SimulateTrucks:
-    NUMBER = 8
-    CAPACITY = 10
+    NUMBER = 8  # number of trucks
+    CAPACITY = 10  # capacity per truck
+    SIZE = 60  # size of truck on graph
 
-    def __init__(self, G, office_nodes, metro_node, scooters):
+    def __init__(self, G, office_nodes, metro_node):
         self.map = G
         self.offices = office_nodes
         self.turns_without_visit = [1] * SimulateScooters.OFFICE_NUM
@@ -20,7 +21,6 @@ class SimulateTrucks:
         self.metro = metro_node
         self.truck_pos = [self.map.node.get(i) for i in sample(self.map.nodes, SimulateTrucks.NUMBER)]
         self.truck_cap = [0] * SimulateTrucks.NUMBER
-        self.scooters_sim = scooters
         self.next_steps = [None] * SimulateTrucks.NUMBER
         self.scooters_picked = 0
         self.dist_travelled = 0
@@ -31,7 +31,7 @@ class SimulateTrucks:
         return x, y
 
     def get_size(self):
-        return [(self.scooters_sim.scooter_unit + cap * cap) for cap in self.truck_cap]
+        return [(SimulateTrucks.SIZE + cap * cap) for cap in self.truck_cap]
 
     def get_shortest_path(self, src, dst):
         return nx.shortest_path(self.map, src['osmid'], dst['osmid'])
