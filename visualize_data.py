@@ -7,7 +7,7 @@ from matplotlib import style
 
 class VisualizeData:
     DATA_POINTS = 4
-    
+
     def __init__(self, data):
         self.data = data
         self.frames = len(data)/self.DATA_POINTS
@@ -32,7 +32,7 @@ class VisualizeData:
         self.ax2.set_title("Average customer waiting time")
         self.ax3.set_title("Average idle state per scooter per turn")
         self.ax4.set_title("Average truck utilzation")
-        
+
     def setup_plot(self):
         style.use('bmh')
         spec = gridspec.GridSpec(ncols=2, nrows=2, figure=self.fig)

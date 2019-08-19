@@ -9,8 +9,7 @@ from truck_simulation import SimulateTrucks
 
 
 class BounceSimulation:
-    UNIT = 40
-    FRAMES = 50
+    FRAMES = 30
 
     def __init__(self, score_func="aging"):
         self.node_values = []
@@ -59,7 +58,7 @@ class BounceSimulation:
         # create the figure and axis
         self.fig, self.ax = plt.subplots(figsize=(fig_width, fig_height), facecolor='w')
 
-        # intialize animation function with setup plot, attach update plot function for each frame
+        # initialize animation function with setup plot, attach update plot function for each frame
         self.ani = animation.FuncAnimation(self.fig, self.update_plot, frames=BounceSimulation.FRAMES,
                                            init_func=self.setup_plot, blit=False)
 
@@ -153,3 +152,4 @@ class BounceSimulation:
         self.plot_trucks.set_sizes(truck_size)
         self.plot_trucks.set_array(truck_size)
         self.plot_trucks.set_offsets(truck_pos)
+

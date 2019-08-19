@@ -6,7 +6,6 @@ from collections import deque
 
 class SimulateScooters:
     IN_RATE = 30  # customers exiting metro per turn
-    OUT_RATE = 2  # customers exiting office per turn
     OFFICE_NUM = 10  # number of offices
     OFFICE_PROB = 1 / OFFICE_NUM  # equal probability of going to any office
     WAITING_TIME = 3  # maximum turns customer will wait for scooter
